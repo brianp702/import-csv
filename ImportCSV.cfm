@@ -1,9 +1,9 @@
 <!--- override the ColdFusion timeout setting because this page can be slow --->
 <cfsetting requestTimeOut = "240">
 <cfoutput>
-<cfparam name="form.file_name" default="NULL">
+<cfparam name="FORM.file_name" default="NULL">
 	
-<cfif isdefined("form.submit_upload") AND form.file_name NEQ "">
+<cfif IsDefined("FORM.submit_upload") AND form.file_name NEQ "">
 	<cftry>	
 		<cfparam name="CurrentPath" default="#GetDirectoryFromPath(GetCurrentTemplatePath())#">
 		<cffile action = "upload" fileField = "file_name" destination = "#CurrentPath#/Imports/CSAbandonedCalls/" nameConflict = "Error"><!--- get and read the CSV-TXT file --->
@@ -16,11 +16,11 @@
 	<cfif CFFILE.FileWasSaved><!--- if the file was successfully saved --->
 		
 		<!--- read the CSV-TXT file data --->
-		<cffile action="read" file="#file_name#" variable="data"> 
+		<cffile action="read" file="#FORM.file_name#" variable="data"> 
 		
 		<cftry>		
 			<!--- import data --->			
-			<cfquery name="importcsv" datasource="LEADGEN">
+			<cfquery name="importCSV" datasource="LEADGEN">
 
 					<!--- loop through the CSV-TXT file on line breaks and insert into database --->
 					<cfloop index="index" list = "#data#" delimiters="#chr(10)##chr(13)#">
@@ -34,19 +34,19 @@
 						<cfset datetime = date & " " & time>
 								
 						<!--- extract the phone number --->				
-						<cfset  phone = mid(#listgetAt('#index#', 2, ',')#, 2, 10)>
+						<cfset phone = mid(listgetAt('#index#', 2, ','), 2, 10)>
 							
 						<!--- extract the hold time --->			
-						<cfset  hold = mid(#listgetAt('#index#', 3, ',')#, 2, 8)>				
+						<cfset hold = mid(listgetAt('#index#', 3, ','), 2, 8)>				
 							
 						INSERT INTO CS_ABANDONED_CALLS (
 							cac_date, 
 							cac_phone, 
 							cac_holdtime
 						) VALUES (
-							'#datetime#',
-							'#phone#',
-							'#hold#'
+							<cfqueryparam value="datetime" cfsqltype="cf_sql_timestamp">
+							<cfqueryparam value="phone" cfsqltype="cf_sql_varchar">
+							<cfqueryparam value="hold" cfsqltype="cf_sql_integer">
 						)
 					</cfloop>
 					
