@@ -3,14 +3,14 @@
 <cfoutput>
 <cfparam name="form.file_name" default="">
 <cfparam name="variables.success" default=false>
+<cfparam name="session.systemMessage" default="">
 
 <cfif IsDefined("form.submit_upload") AND form.file_name NEQ "">
 	<cftry>	
 		<cfparam name="CurrentPath" default="#GetDirectoryFromPath(GetCurrentTemplatePath())#">
 		<cffile action="upload" fileField="form.file_name" destination="#CurrentPath#/Imports/CSAbandonedCalls/" nameConflict="Error">
 		<cfcatch type="any">
-			A file with this name has already been uploaded.
-			<cfabort>
+			<cfset session.systemMessage = "A file with this name has already been uploaded.">
 		</cfcatch>
 	</cftry>
 
@@ -18,20 +18,20 @@
 	<cfif cffile.FileWasSaved>
 		
 		<!--- read the CSV-TXT file data --->
-		<cffile action="read" file="#form.file_name#" variable="data"> 
+		<cffile action="read" file="#form.file_name#" variable="variables.CSVdata"> 
 		
 		<cftry>		
 			<!--- import data --->			
 			<cfquery name="importCSV" datasource="LEADGEN">
 
 				<!--- loop through the CSV-TXT file on line breaks and insert into database --->
-				<cfloop index="index" list = "#data#" delimiters="#chr(10)##chr(13)#">
+				<cfloop index="index" list="#variables.CSVdata#" delimiters="#chr(10)##chr(13)#">
 					<cfset datetime = #ListGetAt('#index#', 1, ',')#>
 					<cfset date = Mid(Replace(datetime, "-", "/", "all"), 2,11)>
 					<cfset time = Mid(datetime, 13, 8)>
 					<cfset datetime = DateFormat(date, "mm-dd-yyyy") & " " & TimeFormat(time, "hh:mm:ss tt")>									
-					<cfset phone = Mid(ListgetAt('#index#', 2, ','), 2, 10)>		
-					<cfset hold = Mid(ListgetAt('#index#', 3, ','), 2, 8)>				
+					<cfset phone = Mid(ListGetAt('#index#', 2, ','), 2, 10)>		
+					<cfset hold = Mid(ListGetAt('#index#', 3, ','), 2, 8)>				
 						
 					INSERT INTO CS_ABANDONED_CALLS (
 						cac_date, 
@@ -48,17 +48,14 @@
 			</cfquery>			
 				
 			<cfif variables.success>	
-				<div align="center">
-					Import successful<hr />
-				</div>
+				<cfset session.systemMessage = "Import successful">
 			</cfif>
 					
 			<!--- catch import error --->	
 			<cfcatch type = "any">
 				<div align="center">
-					Error importing file. Check for the correct format and try again.<hr />
+					<cfset session.systemMessage = "Error importing file. Check for the correct format and try again.">
 					<cffile action = "delete" file = "#CurrentPath#\uploads\#CFFILE.clientFile#">
-					</b>
 				</div>
 			</cfcatch>
 		</cftry>
@@ -72,21 +69,14 @@
 	<title>CS Abandoned Calls Import</title>
 </head>
 <body>	
-<cfoutput>	
-<div align="center">
-	<table cellpadding="5" cellspacing="0">
-		<form method="post" action="#CGI.SCRIPT_NAME#" enctype="multipart/form-data" name="formupload">
-			<tr>
-				<td><h1>CS Abandoned Calls Import</h1></td>
-			</tr>
-			<tr>
-				<td><input type="file" name="file_name"></td>
-			</tr>
-			<tr>
-				<td><input type="submit" name="submit_upload" value="Upload and Import File"></td>
-			</tr>
-		</form>
-	</table>
+<cfoutput>
+<div>#session.systemMessage#</div>
+<div>
+	<form method="post" action="#CGI.SCRIPT_NAME#" enctype="multipart/form-data" name="formupload">
+		<h1>CS Abandoned Calls Import</h1>
+		<div><input type="file" name="file_name"></div>
+		<div><input type="submit" name="submit_upload" value="Upload and import csv file"></div>
+	</form>
 </div>
 </cfoutput> 
 </body>
